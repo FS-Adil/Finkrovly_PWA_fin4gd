@@ -1,0 +1,74 @@
+server:
+  port: ${SERVER_PORT}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+  api-docs:
+    enabled: true
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+
+spring:
+  application:
+    name: backendfin4gd-service
+  config:
+    import: optional:file:.env[.properties]
+
+  session:
+    store-type: redis
+    timeout: 30m
+    data:
+      redis:
+        namespace: adil-fintech
+        flush-mode: on-save
+
+  # Redis конфигурация через Lettuce
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD}
+      database: ${REDIS_DATABASE}
+      timeout: 2000ms
+      connect-timeout: 2000ms
+      client-type: lettuce
+      lettuce:
+        pool:
+          max-active: 16
+          max-idle: 8
+          min-idle: 4
+          max-wait: 2000ms
+          time-between-eviction-runs: 30s
+          enabled: false
+        shutdown-timeout: 100ms
+      repositories:
+        enabled: false  # Отключаем Spring Data Redis репозитории
+
+app:
+  # URL микросервисов
+  services:
+    auth-service:
+      url: ${AUTH_SERVICE_URL}
+      internal-secret: ${AUTH_INTERNAL_SECRET}
+
+  session:
+    cookie-secure: ${SESSION_COOKIE_SECURE}
+    cookie-name: ${SESSION_COOKIE_NAME}
+
+
+# ============================================
+# LOGGING
+# ============================================
+logging:
+  level:
+    com.example.backendfin4gd: ${APP_LOG_LEVEL}
+    org.springframework.security: ${SECURITY_LOG_LEVEL}
+    org.springframework.data.redis: WARN
+    io.lettuce.core: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{traceId:-}] %-5level %logger{36} - %msg%n"
