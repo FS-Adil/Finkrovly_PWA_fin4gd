@@ -241,7 +241,7 @@ function App() {
           </button>
 
           <p className="mt-6 text-center text-xs text-gray-400">
-            Adil FinTech · Защищённый доступ
+            FinDigTech · Защищённый доступ
           </p>
         </section>
       </main>
@@ -280,7 +280,7 @@ function App() {
 
             <div>
               <div className="text-lg font-semibold tracking-wide">
-                Adil FinTech
+                FinDigTech
               </div>
               <div className="text-xs text-white/65">
                 Прозрачность в каждой сделке
@@ -364,7 +364,7 @@ function App() {
           </div>
 
           <div className="relative z-10 text-xs text-white/50">
-            Adil FinTech · Цифровая инфраструктура торговли
+            FinDigTech · Цифровая инфраструктура торговли
           </div>
         </section>
 
@@ -372,7 +372,7 @@ function App() {
           <div className="w-full max-w-md">
             <div className="mb-10 lg:hidden">
               <div className="text-xl font-semibold text-[#123c2f]">
-                Adil FinTech
+                FinDigTech
               </div>
               <div className="mt-1 text-sm text-gray-500">
                 Прозрачность в каждой сделке
@@ -501,7 +501,7 @@ function App() {
             </div>
 
             <p className="mt-10 text-center text-xs text-gray-400">
-              © {new Date().getFullYear()} Adil FinTech
+              © {new Date().getFullYear()} FinDigTech
             </p>
           </div>
         </section>

@@ -42,12 +42,12 @@ const tabs: Tab[] = [
     shortLabel: 'Товары',
     icon: '▣',
   },
-  {
-    id: 'history',
-    label: 'История сделок',
-    shortLabel: 'История',
-    icon: '↻',
-  },
+//   {
+//     id: 'history',
+//     label: 'История сделок',
+//     shortLabel: 'История',
+//     icon: '↻',
+//   },
   {
     id: 'devices',
     label: 'Устройства',
@@ -144,7 +144,7 @@ export default function Dashboard({
 
             <div className="min-w-0">
               <p className="truncate font-semibold text-[#123c2f]">
-                Adil FinTech
+                FinDigTech
               </p>
               <p className="text-xs text-gray-500">
                 Рабочее пространство
@@ -271,7 +271,7 @@ export default function Dashboard({
                 </p>
 
                 <p className="mt-2 text-sm leading-6 text-gray-500">
-                  Здесь появятся инструменты Adil FinTech для работы
+                  Здесь появятся инструменты FinDigTech для работы
                   с этим направлением.
                 </p>
               </div>

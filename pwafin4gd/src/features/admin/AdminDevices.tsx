@@ -102,7 +102,7 @@ export default function AdminDevices({ onBack }: AdminDevicesProps) {
         <header className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-sm font-medium text-[#38745b]">
-              Adil FinTech · Администрирование
+              FinDigTech · Администрирование
             </p>
 
             <h1 className="mt-2 text-2xl font-semibold text-gray-900 sm:text-3xl">

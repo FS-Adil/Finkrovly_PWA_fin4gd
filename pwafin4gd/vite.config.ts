@@ -16,18 +16,67 @@ export default defineConfig (({ mode }) => {
     plugins: [
       react(),
       tailwindcss(),
+    //   VitePWA({
+    //   registerType: 'autoUpdate',
+    //   manifest: {
+    //     name: 'FinTech',
+    //     short_name: 'Adil FinTech',
+    //     description: 'Прозрачные финансовые операции',
+    //     theme_color: '#123c2f',
+    //     background_color: '#f5f7f5',
+    //     display: 'standalone',
+    //     start_url: '/',
+    //   },
+    // }),
       VitePWA({
-      registerType: 'autoUpdate',
-      manifest: {
-        name: 'Adil FinTech',
-        short_name: 'Adil FinTech',
-        description: 'Прозрачные финансовые операции',
-        theme_color: '#123c2f',
-        background_color: '#f5f7f5',
-        display: 'standalone',
-        start_url: '/',
-      },
-    }),
+        base,
+        scope: base,
+        registerType: 'autoUpdate',
+        workbox: {
+          globPatterns: ["**/*{html,css,js,ico,png,svg}"]
+        },
+        manifest: {
+          start_url: base,
+          scope: base,
+          name: 'Financial Digital Technologies',
+          short_name: 'FinDigTech',
+          theme_color: '#ffffff',
+          icons: [
+            {
+              src: 'icon-192x192.png',
+              sizes: '192x192',
+              type: 'image/png'
+            },
+            {
+              src: 'icon-512x512.png',
+              sizes: '512x512',
+              type: 'image/png'
+            },
+            {
+              src: 'icon-512x512.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'maskable'
+            }
+          ],
+          screenshots: [
+            {
+              src: 'desctop-720x1280.png',
+              sizes: '1280x720',
+              type: 'image/png',
+              form_factor: 'wide',
+              label: 'Desktop'
+            },
+            {
+              src: 'modile-1280x720.png',
+              sizes: '720x1280',
+              type: 'image/png',
+              form_factor: 'narrow',
+              label: 'Mobile'
+            }
+          ]
+        }
+      })
     ],
 
     server: {
