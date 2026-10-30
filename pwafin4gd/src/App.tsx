@@ -283,24 +283,23 @@ function App() {
                 FinDigTech
               </div>
               <div className="text-xs text-white/65">
-                Прозрачность в каждой сделке
+                Прозрачность в каждом процессе
               </div>
             </div>
           </a>
 
           <div className="relative z-10 my-12 max-w-xl">
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-2 text-xs text-white/80">
+            {/* <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-2 text-xs text-white/80">
               <span className="h-2 w-2 rounded-full bg-emerald-300" />
               Финансовая платформа нового поколения
-            </div>
+            </div> */}
 
             <h1 className="text-4xl font-semibold leading-tight tracking-tight sm:text-5xl xl:text-6xl">
               Доверие начинается с прозрачности.
             </h1>
 
             <p className="mt-6 max-w-lg text-base leading-7 text-white/75 sm:text-lg">
-              Единая цифровая среда для управления финансами, товарами и
-              подтверждённой историей сделок.
+              Единая цифровая среда для управления финансами и товарами.
             </p>
 
             <div className="mt-10 grid gap-4 sm:grid-cols-2">
@@ -328,7 +327,7 @@ function App() {
                 </div>
                 <h2 className="font-medium">Контроль операций</h2>
                 <p className="mt-2 text-sm leading-6 text-white/65">
-                  Последовательность действий и подтверждение каждой сделки.
+                  Последовательность действий и подтверждение каждой операции.
                 </p>
               </div>
 
@@ -364,7 +363,7 @@ function App() {
           </div>
 
           <div className="relative z-10 text-xs text-white/50">
-            FinDigTech · Цифровая инфраструктура торговли
+            FinDigTech · Цифровая инфраструктура финансов
           </div>
         </section>
 
@@ -424,9 +423,9 @@ function App() {
                   >
                     Пароль
                   </label>
-                  <span className="text-xs text-gray-400">
+                  {/* <span className="text-xs text-gray-400">
                     Восстановление подключим позже
-                  </span>
+                  </span> */}
                 </div>
                 <input
                   id="password"
