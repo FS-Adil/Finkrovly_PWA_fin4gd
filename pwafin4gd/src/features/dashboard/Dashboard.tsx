@@ -76,12 +76,12 @@ const sections = [
     title: 'Товары и склад',
     description: 'Учёт товаров и контроль состояния запасов.',
   },
-  {
-    id: 'history' as const,
-    number: '04',
-    title: 'История сделок',
-    description: 'Хронология операций и подтверждение действий.',
-  },
+//   {
+//     id: 'history' as const,
+//     number: '04',
+//     title: 'История сделок',
+//     description: 'Хронология операций и подтверждение действий.',
+//   },
 ]
 
 export default function Dashboard({
@@ -176,8 +176,8 @@ export default function Dashboard({
               </h1>
 
               <p className="mt-4 max-w-2xl text-sm leading-6 text-white/75 sm:text-base">
-                Единое пространство для финансовых операций,
-                управления товарами и проверки истории сделок.
+                Единое пространство для финансовых операций и
+                управления товарами.
               </p>
 
               <div className="mt-7 grid gap-3 sm:grid-cols-2 sm:gap-4">
@@ -212,7 +212,7 @@ export default function Dashboard({
                 </p>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4">
+              <div className="grid gap-3 sm:grid-cols-2 sm:gap-3 xl:grid-cols-3">
                 {sections.map((section) => (
                   <button
                     key={section.id}
