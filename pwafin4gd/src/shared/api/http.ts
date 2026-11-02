@@ -1,7 +1,12 @@
 import axios from 'axios'
 
+const APP_BASE = import.meta.env.VITE_APP_BASE;
+const BFF_URL = import.meta.env.VITE_BFF_URL;
+const BASE = `${BFF_URL}/`;
+
 export const http = axios.create({
-  baseURL: '/',
+//   baseURL: '/',
+  baseURL: BASE,
   withCredentials: true,
   headers: {
     Accept: 'application/json',

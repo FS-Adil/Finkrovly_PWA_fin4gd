@@ -13,6 +13,12 @@ import org.springframework.security.web.context.SecurityContextHolderFilter;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
+import java.util.List;
 
 @EnableMethodSecurity
 @Configuration
@@ -37,6 +43,9 @@ public class SecurityConfig {
     ) throws Exception {
 
         http
+                // ==================== CORS ====================
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+
                 .securityContext(context -> context
                         .securityContextRepository(securityContextRepository)
                         .requireExplicitSave(true)
@@ -83,5 +92,44 @@ public class SecurityConfig {
         registration.setEnabled(false);
 
         return registration;
+    }
+
+    /**
+     * Конфигурация CORS.
+     * Разрешает запросы только с доверенных доменов.
+     */
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+
+        // Разрешенные источники (в production - конкретные домены)
+        configuration.setAllowedOrigins(List.of(
+                "http://localhost:5000", "https://pwa.rolls.finkrovl.ru", "http://localhost:4173")
+        );
+
+        // Разрешенные HTTP методы
+        configuration.setAllowedMethods(Arrays.asList(
+                "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"
+        ));
+
+//        configuration.setAllowedHeaders(Arrays.asList("*"));
+
+        configuration.setAllowedHeaders(Arrays.asList(
+                "Content-Type",
+                "X-CSRF-TOKEN",
+                "Authorization",
+                "Accept",
+                "Origin",
+                "X-Requested-With",
+                "User-Agent"
+        ));
+
+        // Разрешить отправку кук
+        configuration.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+
+        return source;
     }
 }

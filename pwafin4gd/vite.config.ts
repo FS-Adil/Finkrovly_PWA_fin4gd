@@ -9,7 +9,7 @@ export default defineConfig (({ mode }) => {
 
   const env = loadEnv(mode, process.cwd(), '');
   const base = env.VITE_APP_BASE;
-  const bffUrl = env.VITE_BFF_URL
+  // const bffUrl = env.VITE_BFF_URL
 
   return {
     base,
@@ -81,12 +81,12 @@ export default defineConfig (({ mode }) => {
 
     server: {
       port: parseInt(env.VITE_APP_PORT),
-      proxy: {
-        '/api': {
-          target: bffUrl,
-          changeOrigin: true,
-        },
-      },
+      // proxy: {
+      //   '/api': {
+      //     target: bffUrl,
+      //     changeOrigin: true,
+      //   },
+      // },
     }
   }
 })
