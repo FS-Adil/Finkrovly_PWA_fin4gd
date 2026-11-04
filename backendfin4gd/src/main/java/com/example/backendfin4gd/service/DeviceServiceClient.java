@@ -4,7 +4,10 @@ import com.example.backendfin4gd.dto.DeviceStatusResponse;
 import com.example.backendfin4gd.dto.DeviceVerificationResponse;
 import com.example.backendfin4gd.dto.RegisterDeviceRequest;
 import com.example.backendfin4gd.dto.RegisteredDeviceResponse;
+
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -12,6 +15,7 @@ import org.springframework.web.client.RestClient;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Component
 public class DeviceServiceClient {
 
@@ -30,6 +34,10 @@ public class DeviceServiceClient {
         this.internalSecret = internalSecret;
     }
 
+    // =========================================================
+    // РЕГИСТРАЦИЯ УСТРОЙСТВА
+    // =========================================================
+
     public RegisteredDeviceResponse register(
             UUID userId,
             UUID organizationId,
@@ -37,40 +45,49 @@ public class DeviceServiceClient {
     ) {
         return restClient.post()
                 .uri("/internal/devices/register")
-                .header(
-                        "X-Internal-Service-Secret",
-                        internalSecret
-                )
-                .header(
-                        "X-Authenticated-User-Id",
-                        userId.toString()
-                )
-                .header(
-                        "X-Authenticated-Organization-Id",
-                        organizationId.toString()
-                )
+                .header("X-Internal-Service-Secret", internalSecret)
+                .header("X-Authenticated-User-Id", userId.toString())
+                .header("X-Authenticated-Organization-Id", organizationId.toString())
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(request)
                 .retrieve()
                 .body(RegisteredDeviceResponse.class);
     }
 
+    // =========================================================
+    // ПОЛУЧЕНИЕ УСТРОЙСТВ, ОЖИДАЮЩИХ ПОДТВЕРЖДЕНИЯ
+    // =========================================================
+
     public List<RegisteredDeviceResponse> findPendingDevices() {
+
         List<RegisteredDeviceResponse> response = restClient.get()
                 .uri("/internal/devices/pending")
-                .header(
-                        "X-Internal-Service-Secret",
-                        internalSecret
-                )
+                .header("X-Internal-Service-Secret", internalSecret)
                 .retrieve()
-                .body(
-                        new org.springframework.core.ParameterizedTypeReference<
-                                List<RegisteredDeviceResponse>
-                                >() {}
-                );
+                .body(new ParameterizedTypeReference<>() {});
 
         return response == null ? List.of() : response;
     }
+
+    // =========================================================
+    // ПОЛУЧЕНИЕ ВСЕХ УСТРОЙСТВ ВСЕХ ОРГАНИЗАЦИЙ
+    // =========================================================
+
+    public List<RegisteredDeviceResponse> findAllDevices(UUID adminUserId) {
+
+        List<RegisteredDeviceResponse> response = restClient.get()
+                .uri("/internal/devices")
+                .header("X-Internal-Service-Secret", internalSecret)
+                .header("X-Authenticated-Admin-Id", adminUserId.toString())
+                .retrieve()
+                .body(new ParameterizedTypeReference<>() {});
+
+        return response == null ? List.of() : response;
+    }
+
+    // =========================================================
+    // ОДОБРЕНИЕ УСТРОЙСТВА
+    // =========================================================
 
     public RegisteredDeviceResponse approve(
             UUID deviceId,
@@ -78,36 +95,69 @@ public class DeviceServiceClient {
     ) {
         return restClient.post()
                 .uri("/internal/devices/{deviceId}/approve", deviceId)
-                .header(
-                        "X-Internal-Service-Secret",
-                        internalSecret
-                )
-                .header(
-                        "X-Authenticated-Admin-Id",
-                        adminUserId.toString()
-                )
+                .header("X-Internal-Service-Secret", internalSecret)
+                .header("X-Authenticated-Admin-Id", adminUserId.toString())
                 .retrieve()
                 .body(RegisteredDeviceResponse.class);
     }
 
+    // =========================================================
+    // БЛОКИРОВКА УСТРОЙСТВА
+    // =========================================================
+
+    public RegisteredDeviceResponse blockDevice(
+            UUID deviceId,
+            UUID adminUserId
+    ) {
+        return restClient.post()
+                .uri("/internal/devices/{deviceId}/block", deviceId)
+                .header("X-Internal-Service-Secret", internalSecret)
+                .header("X-Authenticated-Admin-Id", adminUserId.toString())
+                .retrieve()
+                .body(RegisteredDeviceResponse.class);
+    }
+
+    // =========================================================
+    // РАЗБЛОКИРОВКА УСТРОЙСТВА
+    // =========================================================
+
+    public RegisteredDeviceResponse unblockDevice(
+            UUID deviceId,
+            UUID adminUserId
+    ) {
+        return restClient.post()
+                .uri("/internal/devices/{deviceId}/unblock", deviceId)
+                .header("X-Internal-Service-Secret", internalSecret)
+                .header("X-Authenticated-Admin-Id", adminUserId.toString())
+                .retrieve()
+                .body(RegisteredDeviceResponse.class);
+    }
+
+    // =========================================================
+    // ПРОВЕРКА АКТИВНОСТИ УСТРОЙСТВА
+    // =========================================================
+
     public boolean isDeviceActive(UUID deviceId, UUID userId) {
+
         DeviceVerificationResponse response = restClient.get()
                 .uri("/internal/devices/{deviceId}/verify", deviceId)
-                .header(
-                        "X-Internal-Service-Secret",
-                        internalSecret
-                )
-                .header(
-                        "X-Authenticated-User-Id",
-                        userId.toString()
-                )
+                .header("X-Internal-Service-Secret", internalSecret)
+                .header("X-Authenticated-User-Id", userId.toString())
                 .retrieve()
                 .body(DeviceVerificationResponse.class);
 
         return response != null && response.active();
     }
 
-    public DeviceStatusResponse getDeviceStatus(UUID deviceId, UUID userId) {
+    // =========================================================
+    // ПОЛУЧЕНИЕ СТАТУСА УСТРОЙСТВА
+    // =========================================================
+
+    public DeviceStatusResponse getDeviceStatus(
+            UUID deviceId,
+            UUID userId
+    ) {
+        log.debug("--> getDeviceStatus --> ");
         return restClient.get()
                 .uri("/internal/devices/{deviceId}/status", deviceId)
                 .header("X-Internal-Service-Secret", internalSecret)

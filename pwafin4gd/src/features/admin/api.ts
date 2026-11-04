@@ -6,7 +6,7 @@ export type DeviceStatus =
   | 'BLOCKED'
   | 'REVOKED'
 
-export type DevicePlatform =   
+export type DevicePlatform =
   | 'IOS'
   | 'ANDROID'
   | 'WINDOWS'
@@ -19,7 +19,16 @@ export interface RegisteredDevice {
   deviceName: string
   platform: DevicePlatform
   status: DeviceStatus
+
+  userId?: string
+  username?: string
+  email?: string
+  organizationId?: string
+
   createdAt: string
+  approvedAt?: string | null
+  revokedAt?: string | null
+  lastSeenAt?: string | null
 }
 
 async function getCsrfToken(): Promise<CsrfResponse> {
@@ -27,8 +36,35 @@ async function getCsrfToken(): Promise<CsrfResponse> {
   return response.data
 }
 
+async function postWithCsrf<T>(url: string): Promise<T> {
+  const csrf = await getCsrfToken()
+
+  const response = await http.post<T>(
+    url,
+    {},
+    {
+      headers: {
+        [csrf.headerName]: csrf.token,
+      },
+    },
+  )
+
+  return response.data
+}
+
 /**
- * Получает список устройств, ожидающих одобрения администратора.
+ * Получает все устройства всех пользователей и организаций.
+ */
+export async function getAllDevices(): Promise<RegisteredDevice[]> {
+  const response = await http.get<RegisteredDevice[]>(
+    '/api/admin/devices',
+  )
+
+  return response.data
+}
+
+/**
+ * Получает устройства, ожидающие подтверждения.
  */
 export async function getPendingDevices(): Promise<RegisteredDevice[]> {
   const response = await http.get<RegisteredDevice[]>(
@@ -39,22 +75,34 @@ export async function getPendingDevices(): Promise<RegisteredDevice[]> {
 }
 
 /**
- * Одобряет зарегистрированное устройство.
+ * Одобряет устройство со статусом PENDING.
  */
 export async function approveDevice(
   deviceId: string,
 ): Promise<RegisteredDevice> {
-  const csrf = await getCsrfToken()
-
-  const response = await http.post<RegisteredDevice>(
+  return postWithCsrf<RegisteredDevice>(
     `/api/admin/devices/${encodeURIComponent(deviceId)}/approve`,
-    {},
-    {
-      headers: {
-        [csrf.headerName]: csrf.token,
-      },
-    },
   )
+}
 
-  return response.data
+/**
+ * Блокирует активное устройство.
+ */
+export async function blockDevice(
+  deviceId: string,
+): Promise<RegisteredDevice> {
+  return postWithCsrf<RegisteredDevice>(
+    `/api/admin/devices/${encodeURIComponent(deviceId)}/block`,
+  )
+}
+
+/**
+ * Разблокирует устройство со статусом BLOCKED.
+ */
+export async function unblockDevice(
+  deviceId: string,
+): Promise<RegisteredDevice> {
+  return postWithCsrf<RegisteredDevice>(
+    `/api/admin/devices/${encodeURIComponent(deviceId)}/unblock`,
+  )
 }

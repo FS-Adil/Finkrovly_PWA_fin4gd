@@ -4,5 +4,6 @@ public enum DeviceStatus {
     PENDING,
     ACTIVE,
     BLOCKED,
-    REVOKED
+    REVOKED,
+    UNREGISTERED
 }

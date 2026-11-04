@@ -28,3 +28,8 @@ input {
 button {
   cursor: pointer;
 }
+
+html,
+body {
+  overscroll-behavior-y: contain;
+}

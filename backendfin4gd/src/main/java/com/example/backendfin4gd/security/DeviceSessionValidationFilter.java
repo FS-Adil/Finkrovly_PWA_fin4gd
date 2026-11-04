@@ -162,12 +162,35 @@ public class DeviceSessionValidationFilter extends OncePerRequestFilter {
                     active
             );
 
+//            if (!active) {
+//                log.warn("DEVICE FILTER: device is inactive");
+//                response.sendError(
+//                        HttpStatus.FORBIDDEN.value(),
+//                        "Device is not active"
+//                );
+//                return;
+//            }
+
             if (!active) {
-                log.warn("DEVICE FILTER: device is inactive");
+                log.warn(
+                        "DEVICE FILTER: device is inactive, invalidating session. deviceId={}, userId={}",
+                        deviceId,
+                        principal.getId()
+                );
+
+                SecurityContextHolder.clearContext();
+
+                try {
+                    session.invalidate();
+                } catch (IllegalStateException exception) {
+                    log.debug("DEVICE FILTER: session was already invalidated");
+                }
+
                 response.sendError(
                         HttpStatus.FORBIDDEN.value(),
-                        "Device is not active"
+                        "Device is not active. Session has been invalidated."
                 );
+
                 return;
             }
 

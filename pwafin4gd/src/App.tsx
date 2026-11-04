@@ -9,13 +9,52 @@ import type { CurrentUser } from './shared/api/http'
 import Dashboard from './features/dashboard/Dashboard'
 import AdminDevices from './features/admin/AdminDevices'
 
+import { usePullToRefresh } from './shared/hooks/usePullToRefresh'
+
 type AppView = 'login' | 'pending'
 
 function isAdminRole(role: string | undefined): boolean {
   return role?.trim().toUpperCase().replace(/^ROLE_/, '') === 'ADMIN'
 }
 
+function PullToRefreshIndicator({
+  pullDistance,
+  refreshing,
+}: {
+  pullDistance: number
+  refreshing: boolean
+}) {
+  const visible = pullDistance > 0 || refreshing
+
+  return (
+    <div
+      aria-live="polite"
+      className="fixed left-0 right-0 top-0 z-[9999] flex justify-center pointer-events-none"
+      style={{
+        opacity: visible ? 1 : 0,
+        transform: `translateY(${visible ? Math.min(pullDistance, 55) - 55 : -55}px)`,
+        transition: refreshing ? 'none' : 'transform 100ms, opacity 100ms',
+      }}
+    >
+      <div className="mt-2 rounded-full border border-gray-200 bg-white px-5 py-3 shadow-lg">
+        <span className="flex items-center gap-2 text-sm font-medium text-[#123c2f]">
+          {refreshing ? (
+            <>
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-[#123c2f]" />
+              Обновление приложения…
+            </>
+          ) : (
+            '↓ Потяните, чтобы обновить'
+          )}
+        </span>
+      </div>
+    </div>
+  )
+}
+
 function App() {
+  const { pullDistance, refreshing } = usePullToRefresh()
+
   const [isCheckingSession, setIsCheckingSession] = useState(true)
   const [view, setView] = useState<AppView>('login')
 
@@ -121,7 +160,13 @@ function App() {
   }
 
   if (isCheckingSession) {
-    return (
+  return (
+    <>
+      <PullToRefreshIndicator
+        pullDistance={pullDistance}
+        refreshing={refreshing}
+      />
+
       <main className="flex min-h-screen items-center justify-center bg-[#f5f7f5]">
         <div className="text-center">
           <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-[#123c2f]" />
@@ -130,59 +175,60 @@ function App() {
           </p>
         </div>
       </main>
-    )
-  }
+    </>
+  )
+}
 
-  // if (currentUser) {
-  //   return <Dashboard user={currentUser} onLogout={handleLogout} />
-  // }
-
-  // if (currentUser) {
-  //   if (showAdminDevices && currentUser.role === 'ADMIN') {
-  //     return (
-  //       <AdminDevices
-  //         onBack={() => setShowAdminDevices(false)}
-  //       />
-  //     )
-  //   }
-
-  //   return (
-  //     <Dashboard
-  //       user={currentUser}
-  //       onLogout={handleLogout}
-  //       onOpenAdminDevices={() => setShowAdminDevices(true)}
-  //     />
-  //   )
-  // }
   if (currentUser) {
+
     if (showAdminDevices && isAdminRole(currentUser.role)) {
       return (
-        <AdminDevices
-          onBack={() => setShowAdminDevices(false)}
-        />
+        <>
+          <PullToRefreshIndicator
+            pullDistance={pullDistance}
+            refreshing={refreshing}
+          />
+
+          <AdminDevices
+            onBack={() => setShowAdminDevices(false)}
+          />
+        </>
       )
     }
 
     return (
-      <Dashboard
-        user={currentUser}
-        onLogout={handleLogout}
-        onOpenAdminDevices={() => {
-          if (isAdminRole(currentUser.role)) {
-            setShowAdminDevices(true)
-          } else {
+      <>
+        <PullToRefreshIndicator
+          pullDistance={pullDistance}
+          refreshing={refreshing}
+        />
+
+        <Dashboard
+          user={currentUser}
+          onLogout={handleLogout}
+          onOpenAdminDevices={() => {
+            if (isAdminRole(currentUser.role)) {
+              setShowAdminDevices(true)
+            } else {
             console.error(
               'Доступ запрещён. Роль пользователя:',
               currentUser.role,
             )
           }
-        }}
-      />
+          }}
+        />
+      </>
     )
   }
 
   if (view === 'pending') {
-    return (
+  return (
+    <>
+      <PullToRefreshIndicator
+        pullDistance={pullDistance}
+        refreshing={refreshing}
+      />
+
       <main className="flex min-h-screen items-center justify-center bg-[#f5f7f5] px-5 py-12">
         <section className="w-full max-w-lg rounded-2xl border border-gray-200 bg-white p-8 shadow-sm sm:p-10">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-amber-50 text-amber-700">
@@ -245,136 +291,29 @@ function App() {
           </p>
         </section>
       </main>
-    )
-  }
+    </>
+  )
+}
 
   return (
-    <main className="min-h-screen bg-[#f5f7f5]">
-      <div className="grid min-h-screen lg:grid-cols-2">
-        <section className="relative flex flex-col justify-between overflow-hidden bg-[#123c2f] px-6 py-8 text-white sm:px-12 sm:py-12 lg:px-16 lg:py-14">
-          <div className="pointer-events-none absolute -right-32 top-32 h-80 w-80 rounded-full border border-white/10" />
-          <div className="pointer-events-none absolute -right-20 top-44 h-56 w-56 rounded-full border border-white/10" />
+    <>
+      <PullToRefreshIndicator
+        pullDistance={pullDistance}
+        refreshing={refreshing}
+      />
 
-          <a href="/" className="relative z-10 flex w-fit items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-[#123c2f]">
-              <svg
-                viewBox="0 0 40 40"
-                fill="none"
-                className="h-7 w-7"
-                aria-hidden="true"
-              >
-                <path
-                  d="M20 3L35 12V28L20 37L5 28V12L20 3Z"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                />
-                <path
-                  d="M13 25V15L20 22L27 15V25"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </div>
-
-            <div>
-              <div className="text-lg font-semibold tracking-wide">
-                FinDigTech
-              </div>
-              <div className="text-xs text-white/65">
-                Прозрачность в каждом процессе
-              </div>
-            </div>
-          </a>
-
-          <div className="relative z-10 my-12 max-w-xl">
-            {/* <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-2 text-xs text-white/80">
-              <span className="h-2 w-2 rounded-full bg-emerald-300" />
-              Финансовая платформа нового поколения
-            </div> */}
-
-            <h1 className="text-4xl font-semibold leading-tight tracking-tight sm:text-5xl xl:text-6xl">
-              Доверие начинается с прозрачности.
-            </h1>
-
-            <p className="mt-6 max-w-lg text-base leading-7 text-white/75 sm:text-lg">
-              Единая цифровая среда для управления финансами и товарами.
-            </p>
-
-            <div className="mt-10 grid gap-4 sm:grid-cols-2">
-              <div className="rounded-2xl border border-white/15 bg-white/5 p-5">
-                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    className="h-5 w-5"
-                    aria-hidden="true"
-                  >
-                    <path
-                      d="M12 3L19 6V11C19 15.5 16 19 12 21C8 19 5 15.5 5 11V6L12 3Z"
-                      stroke="currentColor"
-                      strokeWidth="1.7"
-                    />
-                    <path
-                      d="M9 12L11 14L15 10"
-                      stroke="currentColor"
-                      strokeWidth="1.7"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </div>
-                <h2 className="font-medium">Контроль операций</h2>
-                <p className="mt-2 text-sm leading-6 text-white/65">
-                  Последовательность действий и подтверждение каждой операции.
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-white/15 bg-white/5 p-5">
-                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    className="h-5 w-5"
-                    aria-hidden="true"
-                  >
-                    <path
-                      d="M4 7H20M4 12H16M4 17H12"
-                      stroke="currentColor"
-                      strokeWidth="1.7"
-                      strokeLinecap="round"
-                    />
-                    <circle
-                      cx="19"
-                      cy="17"
-                      r="2"
-                      stroke="currentColor"
-                      strokeWidth="1.7"
-                    />
-                  </svg>
-                </div>
-                <h2 className="font-medium">История сделок</h2>
-                <p className="mt-2 text-sm leading-6 text-white/65">
-                  Основа для проверяемого и прозрачного учёта операций.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="relative z-10 text-xs text-white/50">
-            FinDigTech · Цифровая инфраструктура финансов
-          </div>
-        </section>
+      <main className="min-h-screen bg-[#f5f7f5]">
+      <div className="grid min-h-screen lg:grid-cols-1">
 
         <section className="flex items-center justify-center px-5 py-12 sm:px-10">
+          
           <div className="w-full max-w-md">
             <div className="mb-10 lg:hidden">
               <div className="text-xl font-semibold text-[#123c2f]">
                 FinDigTech
               </div>
               <div className="mt-1 text-sm text-gray-500">
-                Прозрачность в каждой сделке
+                Прозрачность в каждом процессе
               </div>
             </div>
 
@@ -423,9 +362,6 @@ function App() {
                   >
                     Пароль
                   </label>
-                  {/* <span className="text-xs text-gray-400">
-                    Восстановление подключим позже
-                  </span> */}
                 </div>
                 <input
                   id="password"
@@ -505,6 +441,7 @@ function App() {
         </section>
       </div>
     </main>
+    </>
   )
 }
 
