@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import type { CurrentUser } from '../../shared/api/http'
 
+import Stock from '../stock/Stock'
+
 interface DashboardProps {
   user: CurrentUser
   onLogout: () => void
@@ -242,7 +244,7 @@ export default function Dashboard({
           </>
         )}
 
-        {activeSection && (
+        {/* {activeSection && (
           <section>
             <button
               type="button"
@@ -277,7 +279,47 @@ export default function Dashboard({
               </div>
             </div>
           </section>
-        )}
+        )} */}
+        {activeSection && (
+            activeTab === 'goods' ? (
+                <Stock onBack={() => setActiveTab('home')} />
+            ) : (
+                <section>
+                <button
+                    type="button"
+                    onClick={() => setActiveTab('home')}
+                    className="mb-6 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                >
+                    ← На главную
+                </button>
+
+                <div className="rounded-3xl border border-gray-200 bg-white p-6 sm:p-10">
+                    <p className="text-sm font-semibold text-[#38745b]">
+                    Раздел {activeSection.number}
+                    </p>
+
+                    <h1 className="mt-3 text-2xl font-semibold text-gray-900 sm:text-3xl">
+                    {activeSection.title}
+                    </h1>
+
+                    <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-500 sm:text-base">
+                    {activeSection.description}
+                    </p>
+
+                    <div className="mt-8 rounded-2xl bg-[#f5f7f5] p-5 sm:p-6">
+                    <p className="font-medium text-gray-900">
+                        Раздел готовится к запуску
+                    </p>
+
+                    <p className="mt-2 text-sm leading-6 text-gray-500">
+                        Здесь появятся инструменты FinDigTech для работы
+                        с этим направлением.
+                    </p>
+                    </div>
+                </div>
+                </section>
+            )
+            )}
       </div>
 
       {/* Нижняя панель вкладок */}
