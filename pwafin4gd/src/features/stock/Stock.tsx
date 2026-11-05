@@ -1,13 +1,18 @@
 
-import { useCallback, useEffect, useState } from 'react'
+import { useStock } from './hooks/useStock'
 import {
-  stockApi,
-  type StockOverview,
+//   stockApi,
+//   type StockOverview,
   type QuantityByUnit,
   type ProductStock,
 } from './api/stockApi'
 
 interface StockProps {
+  onBack: () => void
+}
+
+interface StockProps {
+  userId: string
   onBack: () => void
 }
 
@@ -92,34 +97,44 @@ function ProductRow({ product }: { product: ProductStock }) {
   )
 }
 
-export default function Stock({ onBack }: StockProps) {
-  const [overview, setOverview] = useState<StockOverview | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState('')
+export default function Stock({ onBack, userId }: StockProps) {
+  const {
+    overview,
+    isLoading,
+    isRefreshing,
+    error,
+    cacheUpdatedAt,
+    refresh,
+  } = useStock(userId)
 
-  const loadStock = useCallback(async () => {
-    setIsLoading(true)
-    setError('')
+// export default function Stock({ onBack }: StockProps) {
+//   const [overview, setOverview] = useState<StockOverview | null>(null)
+//   const [isLoading, setIsLoading] = useState(true)
+//   const [error, setError] = useState('')
 
-    try {
-      const result = await stockApi.getOverview()
-      setOverview(result)
-    } catch (err) {
-      if (import.meta.env.DEV) {
-        console.error('Не удалось загрузить складские данные:', err)
-      }
+//   const loadStock = useCallback(async () => {
+//     setIsLoading(true)
+//     setError('')
 
-      setError(
-        'Не удалось загрузить складские данные. Проверьте подключение к серверу.',
-      )
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
+//     try {
+//       const result = await stockApi.getOverview()
+//       setOverview(result)
+//     } catch (err) {
+//       if (import.meta.env.DEV) {
+//         console.error('Не удалось загрузить складские данные:', err)
+//       }
 
-  useEffect(() => {
-    void loadStock()
-  }, [loadStock])
+//       setError(
+//         'Не удалось загрузить складские данные. Проверьте подключение к серверу.',
+//       )
+//     } finally {
+//       setIsLoading(false)
+//     }
+//   }, [])
+
+//   useEffect(() => {
+//     void loadStock()
+//   }, [loadStock])
 
   return (
     <main className="min-h-screen bg-[#f5f7f5] px-4 py-6 pb-12 sm:px-8 sm:py-10">
@@ -148,7 +163,7 @@ export default function Stock({ onBack }: StockProps) {
           </button>
         </header>
 
-        <div className="mt-6 flex justify-end">
+        {/* <div className="mt-6 flex justify-end">
           <button
             type="button"
             onClick={() => void loadStock()}
@@ -157,6 +172,26 @@ export default function Stock({ onBack }: StockProps) {
           >
             {isLoading ? 'Загрузка…' : '↻ Обновить'}
           </button>
+        </div> */}
+
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+            <div className="text-xs text-gray-400">
+                {cacheUpdatedAt
+                ? `Обновлено: ${new Intl.DateTimeFormat('ru-RU', {
+                    dateStyle: 'short',
+                    timeStyle: 'short',
+                    }).format(cacheUpdatedAt)}`
+                : 'Данные ещё не загружены'}
+            </div>
+
+            <button
+                type="button"
+                onClick={() => void refresh()}
+                disabled={isLoading || isRefreshing}
+                className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
+            >
+                {isRefreshing ? 'Обновление…' : '↻ Обновить'}
+            </button>
         </div>
 
         {error && (
@@ -167,7 +202,8 @@ export default function Stock({ onBack }: StockProps) {
             {error}
             <button
               type="button"
-              onClick={() => void loadStock()}
+            //   onClick={() => void loadStock()}
+              onClick={() => void refresh()}
               className="ml-3 font-semibold underline"
             >
               Повторить

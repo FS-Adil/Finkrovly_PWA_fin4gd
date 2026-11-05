@@ -11,6 +11,8 @@ import AdminDevices from './features/admin/AdminDevices'
 
 import { usePullToRefresh } from './shared/hooks/usePullToRefresh'
 
+import { deleteStockCache } from './features/stock/db/stockDatabase'
+
 type AppView = 'login' | 'pending'
 
 function isAdminRole(role: string | undefined): boolean {
@@ -142,7 +144,22 @@ function App() {
     setMessage('')
 
     try {
+      // await logout()
+      // setCurrentUser(null)
+      // setPassword('')
+      // setView('login')
       await logout()
+      if (currentUser?.id) {
+        try {
+          await deleteStockCache(currentUser.id)
+        } catch (cacheError) {
+          console.warn(
+            'Не удалось очистить локальный кеш склада:',
+            cacheError,
+          )
+        }
+      }
+
       setCurrentUser(null)
       setPassword('')
       setView('login')
