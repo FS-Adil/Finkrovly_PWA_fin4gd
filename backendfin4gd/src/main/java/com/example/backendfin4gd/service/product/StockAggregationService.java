@@ -275,11 +275,12 @@ public class StockAggregationService {
 
         if (product.productId() == null
                 || product.quantity() == null
-                || product.unitCost() == null
-                || product.unitOfMeasureCode() == null
-                || product.unitOfMeasureCode().isBlank()
-                || product.unitOfMeasureName() == null
-                || product.unitOfMeasureName().isBlank()) {
+                || product.unitCost() == null)
+//                || product.unitOfMeasureCode() == null
+//                || product.unitOfMeasureCode().isBlank()
+//                || product.unitOfMeasureName() == null
+//                || product.unitOfMeasureName().isBlank())
+        {
 
             throw new ResponseStatusException(
                     HttpStatus.BAD_GATEWAY,
