@@ -109,7 +109,8 @@ export default function Stock({ onBack, userId }: StockProps) {
     new Set(),
   )
 
-  const [searchQuery, setSearchQuery] = useState('')
+//   const [searchQuery, setSearchQuery] = useState('')
+  const [searchQuery] = useState('')
 
   const toggleOrg = (id: string) => {
     setExpandedOrgs((prev) => {
