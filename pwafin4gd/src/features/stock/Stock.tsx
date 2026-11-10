@@ -1,15 +1,11 @@
-
+import { useState } from 'react'
 import { useStock } from './hooks/useStock'
 import {
-//   stockApi,
-//   type StockOverview,
+  // stockApi,
+  // type StockOverview,
   type QuantityByUnit,
   type ProductStock,
 } from './api/stockApi'
-
-interface StockProps {
-  onBack: () => void
-}
 
 interface StockProps {
   userId: string
@@ -107,34 +103,95 @@ export default function Stock({ onBack, userId }: StockProps) {
     refresh,
   } = useStock(userId)
 
-// export default function Stock({ onBack }: StockProps) {
-//   const [overview, setOverview] = useState<StockOverview | null>(null)
-//   const [isLoading, setIsLoading] = useState(true)
-//   const [error, setError] = useState('')
+  // По умолчанию пусто => всё свёрнуто
+  const [expandedOrgs, setExpandedOrgs] = useState<Set<string>>(new Set())
+  const [expandedWarehouses, setExpandedWarehouses] = useState<Set<string>>(
+    new Set(),
+  )
 
-//   const loadStock = useCallback(async () => {
-//     setIsLoading(true)
-//     setError('')
+  const [searchQuery, setSearchQuery] = useState('')
 
-//     try {
-//       const result = await stockApi.getOverview()
-//       setOverview(result)
-//     } catch (err) {
-//       if (import.meta.env.DEV) {
-//         console.error('Не удалось загрузить складские данные:', err)
-//       }
+  const toggleOrg = (id: string) => {
+    setExpandedOrgs((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
 
-//       setError(
-//         'Не удалось загрузить складские данные. Проверьте подключение к серверу.',
-//       )
-//     } finally {
-//       setIsLoading(false)
-//     }
-//   }, [])
+  const toggleWarehouse = (id: string) => {
+    setExpandedWarehouses((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
 
-//   useEffect(() => {
-//     void loadStock()
-//   }, [loadStock])
+  const expandAll = () => {
+    if (!overview) return
+    setExpandedOrgs(
+      new Set(overview.organizations.map((o) => o.organizationId)),
+    )
+    setExpandedWarehouses(
+      new Set(
+        overview.organizations.flatMap((o) =>
+          o.warehouses.map((w) => w.warehouseId),
+        ),
+      ),
+    )
+  }
+
+  const collapseAll = () => {
+    setExpandedOrgs(new Set())
+    setExpandedWarehouses(new Set())
+  }
+
+  const normalizedQuery = searchQuery.trim().toLowerCase()
+  const isSearching = normalizedQuery.length > 0
+
+  const matches = (value: string) =>
+    value.toLowerCase().includes(normalizedQuery)
+
+  // Фильтрация по поиску: организации → склады → товары
+  const filteredOrganizations = overview
+    ? overview.organizations
+        .map((org) => {
+          const orgMatches =
+            matches(org.organizationCode) || matches(org.organizationId)
+
+          const warehouses = org.warehouses
+            .map((wh) => {
+              const whMatches =
+                matches(wh.warehouseName) || matches(wh.warehouseId)
+
+              const products = wh.products.filter(
+                (p) =>
+                  matches(p.productName) ||
+                  matches(String(p.productId)) ||
+                  whMatches ||
+                  orgMatches,
+              )
+
+              const visible =
+                whMatches || products.length > 0 || orgMatches
+
+              return { ...wh, visible, products }
+            })
+            .filter((wh) => wh.visible)
+
+          const visible = orgMatches || warehouses.length > 0
+
+          return { ...org, visible, warehouses }
+        })
+        .filter((org) => org.visible)
+    : []
+
+  // При поиске все совпавшие узлы раскрываем автоматически
+  const isOrgExpanded = (orgId: string) =>
+    isSearching ? true : expandedOrgs.has(orgId)
+
+  const isWarehouseExpanded = (whId: string) =>
+    isSearching ? true : expandedWarehouses.has(whId)
 
   return (
     <main className="min-h-screen bg-[#f5f7f5] px-4 py-6 pb-12 sm:px-8 sm:py-10">
@@ -163,35 +220,24 @@ export default function Stock({ onBack, userId }: StockProps) {
           </button>
         </header>
 
-        {/* <div className="mt-6 flex justify-end">
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+          <div className="text-xs text-gray-400">
+            {cacheUpdatedAt
+              ? `Обновлено: ${new Intl.DateTimeFormat('ru-RU', {
+                  dateStyle: 'short',
+                  timeStyle: 'short',
+                }).format(cacheUpdatedAt)}`
+              : 'Данные ещё не загружены'}
+          </div>
+
           <button
             type="button"
-            onClick={() => void loadStock()}
-            disabled={isLoading}
+            onClick={() => void refresh()}
+            disabled={isLoading || isRefreshing}
             className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
           >
-            {isLoading ? 'Загрузка…' : '↻ Обновить'}
+            {isRefreshing ? 'Обновление…' : '↻ Обновить'}
           </button>
-        </div> */}
-
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-            <div className="text-xs text-gray-400">
-                {cacheUpdatedAt
-                ? `Обновлено: ${new Intl.DateTimeFormat('ru-RU', {
-                    dateStyle: 'short',
-                    timeStyle: 'short',
-                    }).format(cacheUpdatedAt)}`
-                : 'Данные ещё не загружены'}
-            </div>
-
-            <button
-                type="button"
-                onClick={() => void refresh()}
-                disabled={isLoading || isRefreshing}
-                className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
-            >
-                {isRefreshing ? 'Обновление…' : '↻ Обновить'}
-            </button>
         </div>
 
         {error && (
@@ -202,7 +248,6 @@ export default function Stock({ onBack, userId }: StockProps) {
             {error}
             <button
               type="button"
-            //   onClick={() => void loadStock()}
               onClick={() => void refresh()}
               className="ml-3 font-semibold underline"
             >
@@ -260,140 +305,292 @@ export default function Stock({ onBack, userId }: StockProps) {
               </div>
             </section>
 
-            <section className="mt-8">
-              <div className="mb-5">
-                <h2 className="text-xl font-semibold text-gray-900">
-                  Организации
-                </h2>
-
-                <p className="mt-1 text-sm text-gray-500">
-                  Складские остатки отдельно по каждой организации.
-                </p>
+            {/* Глобальный поиск */}
+            {/* <div className="mt-6">
+              <div className="relative">
+                <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                  🔍
+                </span>
+                <input
+                  type="search"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Поиск по организациям, складам и товарам (название или ID)…"
+                  className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-11 pr-10 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#123c2f] focus:outline-none focus:ring-2 focus:ring-[#123c2f]/20"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    aria-label="Очистить поиск"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
 
-              {overview.organizations.length === 0 ? (
+              {isSearching && (
+                <p className="mt-2 text-xs text-gray-500">
+                  Найдено организаций: {filteredOrganizations.length}
+                </p>
+              )}
+            </div> */}
+
+            <section className="mt-6">
+              <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    Организации
+                  </h2>
+
+                  <p className="mt-1 text-sm text-gray-500">
+                    Складские остатки отдельно по каждой организации.
+                  </p>
+                </div>
+
+                {!isSearching && (
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={expandAll}
+                      className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                    >
+                      Раскрыть всё
+                    </button>
+                    <button
+                      type="button"
+                      onClick={collapseAll}
+                      className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                    >
+                      Скрыть всё
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {filteredOrganizations.length === 0 ? (
                 <div className="rounded-2xl border border-gray-200 bg-white px-5 py-12 text-center">
-                  <p className="font-medium text-gray-800">
-                    Организации не найдены
-                  </p>
-                  <p className="mt-2 text-sm text-gray-500">
-                    Для вашей учётной записи пока нет доступных организаций.
-                  </p>
+                  {isSearching ? (
+                    <>
+                      <p className="font-medium text-gray-800">
+                        Ничего не найдено
+                      </p>
+                      <p className="mt-2 text-sm text-gray-500">
+                        Попробуйте изменить запрос «{searchQuery}».
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="font-medium text-gray-800">
+                        Организации не найдены
+                      </p>
+                      <p className="mt-2 text-sm text-gray-500">
+                        Для вашей учётной записи пока нет доступных
+                        организаций.
+                      </p>
+                    </>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-5">
-                  {overview.organizations.map((organization) => (
-                    <article
-                      key={organization.organizationId}
-                      className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"
-                    >
-                      <div className="border-b border-gray-100 p-5 sm:p-6">
-                        <div className="flex flex-wrap items-start justify-between gap-3">
-                          <div>
-                            <h3 className="text-lg font-semibold text-gray-900">
-                              {organization.organizationCode}
-                            </h3>
+                  {filteredOrganizations.map((organization) => {
+                    const orgExpanded = isOrgExpanded(
+                      organization.organizationId,
+                    )
 
-                            <p className="mt-1 text-xs text-gray-400">
-                              ID: {organization.organizationId}
-                            </p>
-                          </div>
-
-                          {organization.dataLoaded ? (
-                            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
-                              Данные загружены
-                            </span>
-                          ) : (
-                            <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800">
-                              Данные не загружены
-                            </span>
-                          )}
-                        </div>
-
-                        {!organization.dataLoaded ? (
-                          <p className="mt-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-900">
-                            {organization.loadingError ||
-                              'Не удалось получить данные этой организации.'}
-                          </p>
-                        ) : (
-                          <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                            <div>
-                              <p className="text-xs text-gray-400">
-                                Стоимость товаров
-                              </p>
-                              <p className="mt-1 text-xl font-semibold text-[#123c2f]">
-                                {formatMoney(organization.totalCost)}
-                              </p>
-                            </div>
-
-                            <div>
-                              <p className="text-xs text-gray-400">
-                                Количество
-                              </p>
-                              <div className="mt-2">
-                                <QuantityList
-                                  quantities={organization.totalQuantities}
-                                />
+                    return (
+                      <article
+                        key={organization.organizationId}
+                        className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"
+                      >
+                        {/* Заголовок организации — кликабельный */}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            toggleOrg(organization.organizationId)
+                          }
+                          className="w-full border-b border-gray-100 p-5 text-left transition hover:bg-gray-50 sm:p-6"
+                        >
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div className="flex items-center gap-3">
+                              <span
+                                className={`text-gray-400 transition-transform ${
+                                  orgExpanded ? 'rotate-90' : ''
+                                }`}
+                              >
+                                ▶
+                              </span>
+                              <div>
+                                <h3 className="text-lg font-semibold text-gray-900">
+                                  {organization.organizationCode}
+                                </h3>
+                                <p className="mt-1 text-xs text-gray-400">
+                                  ID: {organization.organizationId}
+                                </p>
                               </div>
                             </div>
+
+                            {organization.dataLoaded ? (
+                              <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
+                                {formatMoney(organization.totalCost)}
+                              </span>
+                            ) : (
+                              <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800">
+                                Данные не загружены
+                              </span>
+                            )}
                           </div>
-                        )}
-                      </div>
+                        </button>
 
-                      {organization.dataLoaded && (
-                        <div className="p-5 sm:p-6">
-                          {organization.warehouses.length === 0 ? (
-                            <p className="text-sm text-gray-500">
-                              На складах этой организации пока нет товаров.
-                            </p>
-                          ) : (
-                            <div className="space-y-5">
-                              {organization.warehouses.map((warehouse) => (
-                                <section
-                                  key={warehouse.warehouseId}
-                                  className="rounded-xl border border-gray-100 bg-[#fafbfa] p-4 sm:p-5"
-                                >
-                                  <div className="flex flex-wrap items-start justify-between gap-3">
-                                    <div>
-                                      <h4 className="font-semibold text-gray-900">
-                                        {warehouse.warehouseName}
-                                      </h4>
-
-                                      <p className="mt-1 text-xs text-gray-400">
-                                        ID: {warehouse.warehouseId}
-                                      </p>
-                                    </div>
-
-                                    <p className="font-semibold text-[#123c2f]">
-                                      {formatMoney(warehouse.totalCost)}
+                        {/* Содержимое организации — только если раскрыто */}
+                        {orgExpanded && (
+                          <>
+                            {!organization.dataLoaded ? (
+                              <div className="p-5 sm:p-6">
+                                <p className="rounded-xl bg-amber-50 p-4 text-sm text-amber-900">
+                                  {organization.loadingError ||
+                                    'Не удалось получить данные этой организации.'}
+                                </p>
+                              </div>
+                            ) : (
+                              <div className="p-5 sm:p-6">
+                                <div className="mb-4 grid gap-4 sm:grid-cols-2">
+                                  <div>
+                                    <p className="text-xs text-gray-400">
+                                      Стоимость товаров
+                                    </p>
+                                    <p className="mt-1 text-xl font-semibold text-[#123c2f]">
+                                      {formatMoney(organization.totalCost)}
                                     </p>
                                   </div>
 
-                                  <div className="mt-4">
-                                    <p className="mb-2 text-xs text-gray-400">
-                                      Количество на складе
+                                  <div>
+                                    <p className="text-xs text-gray-400">
+                                      Количество
                                     </p>
-                                    <QuantityList
-                                      quantities={warehouse.totalQuantities}
-                                    />
-                                  </div>
-
-                                  <div className="mt-4 border-t border-gray-200">
-                                    {warehouse.products.map((product) => (
-                                      <ProductRow
-                                        key={product.productId}
-                                        product={product}
+                                    <div className="mt-2">
+                                      <QuantityList
+                                        quantities={
+                                          organization.totalQuantities
+                                        }
                                       />
-                                    ))}
+                                    </div>
                                   </div>
-                                </section>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </article>
-                  ))}
+                                </div>
+
+                                {organization.warehouses.length === 0 ? (
+                                  <p className="text-sm text-gray-500">
+                                    {isSearching
+                                      ? 'Ничего не найдено в этой организации.'
+                                      : 'На складах этой организации пока нет товаров.'}
+                                  </p>
+                                ) : (
+                                  <div className="space-y-4">
+                                    {organization.warehouses.map(
+                                      (warehouse) => {
+                                        const whExpanded =
+                                          isWarehouseExpanded(
+                                            warehouse.warehouseId,
+                                          )
+
+                                        return (
+                                          <section
+                                            key={warehouse.warehouseId}
+                                            className="overflow-hidden rounded-xl border border-gray-100 bg-[#fafbfa]"
+                                          >
+                                            {/* Заголовок склада — кликабельный */}
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                toggleWarehouse(
+                                                  warehouse.warehouseId,
+                                                )
+                                              }
+                                              className="flex w-full flex-wrap items-start justify-between gap-3 p-4 text-left transition hover:bg-gray-50 sm:p-5"
+                                            >
+                                              <div className="flex items-center gap-2">
+                                                <span
+                                                  className={`text-gray-400 transition-transform ${
+                                                    whExpanded
+                                                      ? 'rotate-90'
+                                                      : ''
+                                                  }`}
+                                                >
+                                                  ▶
+                                                </span>
+                                                <div>
+                                                  <h4 className="font-semibold text-gray-900">
+                                                    {warehouse.warehouseName}
+                                                  </h4>
+                                                  <p className="mt-1 text-xs text-gray-400">
+                                                    ID:{' '}
+                                                    {warehouse.warehouseId} ·{' '}
+                                                    {
+                                                      warehouse.products
+                                                        .length
+                                                    }{' '}
+                                                    поз.
+                                                  </p>
+                                                </div>
+                                              </div>
+
+                                              <p className="font-semibold text-[#123c2f]">
+                                                {formatMoney(
+                                                  warehouse.totalCost,
+                                                )}
+                                              </p>
+                                            </button>
+
+                                            {/* Содержимое склада — только если раскрыто */}
+                                            {whExpanded && (
+                                              <div className="border-t border-gray-200 p-4 sm:p-5">
+                                                <div className="mb-3">
+                                                  <p className="mb-2 text-xs text-gray-400">
+                                                    Количество на складе
+                                                  </p>
+                                                  <QuantityList
+                                                    quantities={
+                                                      warehouse.totalQuantities
+                                                    }
+                                                  />
+                                                </div>
+
+                                                <div className="border-t border-gray-200">
+                                                  {warehouse.products
+                                                    .length === 0 ? (
+                                                    <p className="py-4 text-sm text-gray-500">
+                                                      Ничего не найдено на
+                                                      этом складе.
+                                                    </p>
+                                                  ) : (
+                                                    warehouse.products.map(
+                                                      (product) => (
+                                                        <ProductRow
+                                                          key={
+                                                            product.productId
+                                                          }
+                                                          product={product}
+                                                        />
+                                                      ),
+                                                    )
+                                                  )}
+                                                </div>
+                                              </div>
+                                            )}
+                                          </section>
+                                        )
+                                      },
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </article>
+                    )
+                  })}
                 </div>
               )}
             </section>

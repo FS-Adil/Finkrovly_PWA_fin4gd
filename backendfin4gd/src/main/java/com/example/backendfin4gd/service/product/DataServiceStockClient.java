@@ -83,6 +83,8 @@ public class DataServiceStockClient {
 
         try {
 
+            log.info("-->getOrganizationStock-->{}-->{}",route.getBaseUrl(), route.getStockPath());
+
             // 4. Выполняем запрос с внутренним секретом.
             DataServiceStockResponse response = RestClient
                     .create(route.getBaseUrl())
