@@ -35,6 +35,8 @@ public class DataServiceRoutingProperties {
          */
         private String stockPath;
 
+        private String moneyPath;
+
         private String internalSecret;
     }
 }
