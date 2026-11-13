@@ -273,6 +273,8 @@ public class MoneyAggregationService {
         BigDecimal noItemIncome = ZERO;
         BigDecimal noItemExpense = ZERO;
 
+        List<MoneyDocumentResponse> noItemDocuments = new ArrayList<>();
+
         if (cashDesk.items() != null) {
 
             for (CashFlowItemMoneyResponse item : cashDesk.items()) {
@@ -295,6 +297,10 @@ public class MoneyAggregationService {
                     noItemIncome = noItemIncome.add(item.income());
                     noItemExpense = noItemExpense.add(item.expense());
 
+                    if (item.documents() != null) {
+                        noItemDocuments.addAll(item.documents());
+                    }
+
                     continue;
                 }
 
@@ -310,7 +316,8 @@ public class MoneyAggregationService {
                                 itemName,
                                 item.income(),
                                 item.expense(),
-                                item.income().subtract(item.expense())
+                                item.income().subtract(item.expense()),
+                                item.documents() == null ? List.of() : item.documents()
                         )
                 );
             }
@@ -324,7 +331,8 @@ public class MoneyAggregationService {
                             NO_ITEM_NAME,
                             noItemIncome,
                             noItemExpense,
-                            noItemIncome.subtract(noItemExpense)
+                            noItemIncome.subtract(noItemExpense),
+                            noItemDocuments
                     )
             );
         }
@@ -345,10 +353,27 @@ public class MoneyAggregationService {
     /**
      * Проверка сумм статьи.
      */
+//    private void validateItem(CashFlowItemMoneyResponse item) {
+//
+//        if (item.income() == null || item.expense() == null) {
+//
+//            throw new ResponseStatusException(
+//                    HttpStatus.BAD_GATEWAY,
+//                    "Data Service returned incomplete cash flow item data"
+//            );
+//        }
+//
+//        if (item.income().signum() < 0 || item.expense().signum() < 0) {
+//
+//            throw new ResponseStatusException(
+//                    HttpStatus.BAD_GATEWAY,
+//                    "Income and expense cannot be negative"
+//            );
+//        }
+//    }
+
     private void validateItem(CashFlowItemMoneyResponse item) {
-
         if (item.income() == null || item.expense() == null) {
-
             throw new ResponseStatusException(
                     HttpStatus.BAD_GATEWAY,
                     "Data Service returned incomplete cash flow item data"
@@ -356,13 +381,13 @@ public class MoneyAggregationService {
         }
 
         if (item.income().signum() < 0 || item.expense().signum() < 0) {
-
             throw new ResponseStatusException(
                     HttpStatus.BAD_GATEWAY,
                     "Income and expense cannot be negative"
             );
         }
     }
+
 
     /**
      * Результат для организации, данные которой не удалось загрузить.

@@ -1,11 +1,12 @@
 import { http } from '../../../shared/api/http'
 
 export interface CashFlowItemMoney {
-  itemId: string
-  itemName: string
+  itemId: string | null
+  itemName: string | null
   income: number
   expense: number
   balance: number
+  documents: MoneyDocument[]
 }
 
 export interface CashDeskMoney {
@@ -45,17 +46,36 @@ export interface MoneyPeriod {
   to: string
 }
 
-// По умолчанию: последний месяц до текущего момента.
-export const defaultMoneyPeriod = () => {
-  const to = new Date()
-  const from = new Date(to.getTime() - 24 * 60 * 60 * 1000)
+export interface MoneyDocument {
+  documentId: string | null
+  documentNumber: string | null
+  documentDate: string | null
+  documentType: string | null
+  description: string | null
+  income: number
+  expense: number
+}
 
+const pad = (n: number) => String(n).padStart(2, '0')
+
+const mskParts = () => {
+  const d = new Date(Date.now() + 3 * 60 * 60 * 1000)
   return {
-    from: from.toISOString(),
-    to: to.toISOString(),
+    y: d.getUTCFullYear(),
+    mo: pad(d.getUTCMonth() + 1),
+    d: pad(d.getUTCDate()),
+    h: pad(d.getUTCHours()),
+    mi: pad(d.getUTCMinutes()),
   }
 }
 
+export const defaultMoneyPeriod = () => {
+  const { y, mo, d, h, mi } = mskParts()
+  return {
+    from: `${y}-${mo}-${d}T00:00:00+03:00`,
+    to:   `${y}-${mo}-${d}T${h}:${mi}:00+03:00`,
+  }
+}
 
 export const moneyApi = {
   getOverview: async (period: MoneyPeriod): Promise<MoneyOverview> => {
