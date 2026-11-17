@@ -50,6 +50,7 @@ export interface MoneyDocument {
   documentId: string | null
   documentNumber: string | null
   documentDate: string | null
+  counterpartyName: string | null
   documentType: string | null
   description: string | null
   income: number

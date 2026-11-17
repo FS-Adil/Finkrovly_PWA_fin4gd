@@ -7,6 +7,7 @@ public record MoneyDocumentResponse(
         String documentId,
         String documentNumber,
         Instant documentDate,
+        String counterpartyName,
         String documentType,
         String description,
         BigDecimal income,

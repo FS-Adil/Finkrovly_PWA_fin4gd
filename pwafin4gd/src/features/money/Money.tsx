@@ -114,7 +114,8 @@ function DocumentsTable({ documents }: { documents: MoneyDocument[] }) {
             <th className={th}>Дата</th>
             <th className={th}>Номер</th>
             <th className={th}>Тип документа</th>
-            <th className={th}>Описание</th>
+            <th className={th}>Контрагент</th>
+            <th className={th}>Комментарий</th>
             <th className={`${th} text-right`}>Поступления</th>
             <th className={`${th} text-right`}>Расход</th>
           </tr>
@@ -141,6 +142,10 @@ function DocumentsTable({ documents }: { documents: MoneyDocument[] }) {
 
               <td className="px-4 py-3 text-gray-700">
                 {document.documentType || '—'}
+              </td>
+
+              <td className="px-4 py-3 text-gray-700">
+                {document.counterpartyName || '—'}
               </td>
 
               <td className="px-4 py-3 text-gray-600">
