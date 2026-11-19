@@ -68,7 +68,6 @@ app:
           stock-path: ${DATA_SERVICE_M_NK_STOCK_PATH}
           money-path: ${DATA_SERVICE_M_NK_MONEY_PATH}
           internal-secret: ${DATA_SERVICE_M_NK_SECRET}
-
         d_nk:
           base-url: ${DATA_SERVICE_D_NK_BASE_URL}
           stock-path: ${DATA_SERVICE_D_NK_STOCK_PATH}
@@ -79,6 +78,17 @@ app:
           stock-path: ${DATA_SERVICE_P_KK_STOCK_PATH}
           money-path: ${DATA_SERVICE_P_KK_MONEY_PATH}
           internal-secret: ${DATA_SERVICE_P_KK_SECRET}
+        a_fk:
+          base-url: ${DATA_SERVICE_A_FK_BASE_URL}
+          stock-path: ${DATA_SERVICE_A_FK_STOCK_PATH}
+          money-path: ${DATA_SERVICE_A_FK_MONEY_PATH}
+          internal-secret: ${DATA_SERVICE_A_FK_SECRET}
+        a_sd:
+          base-url: ${DATA_SERVICE_A_SD_BASE_URL}
+          stock-path: ${DATA_SERVICE_A_SD_STOCK_PATH}
+          money-path: ${DATA_SERVICE_A_SD_MONEY_PATH}
+          internal-secret: ${DATA_SERVICE_A_SD_SECRET}
+
 
   session:
     cookie-secure: ${SESSION_COOKIE_SECURE}
