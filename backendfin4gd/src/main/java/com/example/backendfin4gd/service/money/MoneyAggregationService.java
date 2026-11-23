@@ -7,6 +7,7 @@ import com.example.backendfin4gd.service.AuthOrganizationServiceClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -16,6 +17,8 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
 @Slf4j
 @Service
@@ -33,6 +36,9 @@ public class MoneyAggregationService {
 
     private final AuthOrganizationServiceClient authOrganizationServiceClient;
     private final DataServiceMoneyClient dataServiceMoneyClient;
+
+    @Qualifier("moneyExecutor")
+    private final Executor moneyExecutor;
 
     /**
      * Получение денежных средств всех организаций пользователя за период [from, to).
@@ -77,88 +83,126 @@ public class MoneyAggregationService {
             );
         }
 
+//        List<OrganizationMoneyResponse> organizationResults =
+//                new ArrayList<>();
+//
+//        BigDecimal globalOpening = ZERO;
+//        BigDecimal globalIncome = ZERO;
+//        BigDecimal globalExpense = ZERO;
+//
+//        // Каждая организация загружается независимо.
+//        for (UserOrganizationResponse organization : organizations) {
+//
+//            // Некорректная организация не прерывает запрос,
+//            // а отображается как «данные не загружены».
+//            if (!isValidOrganization(organization)) {
+//
+//                log.warn(
+//                        "Auth Service returned invalid organization data: {}",
+//                        organization
+//                );
+//
+//                organizationResults.add(
+//                        unavailableOrganization(
+//                                organization,
+//                                INVALID_ORGANIZATION_REASON
+//                        )
+//                );
+//
+//                continue;
+//            }
+//
+//            try {
+//
+//                DataServiceMoneyResponse data =
+//                        dataServiceMoneyClient.getOrganizationMoney(
+//                                organization, from, to
+//                        );
+//
+//                OrganizationMoneyResponse result =
+//                        aggregateOrganization(organization, data);
+//
+//                organizationResults.add(result);
+//
+//                // В общие итоги включаем только успешно загруженные данные.
+//                globalOpening = globalOpening.add(result.openingBalance());
+//                globalIncome = globalIncome.add(result.totalIncome());
+//                globalExpense = globalExpense.add(result.totalExpense());
+//
+//            } catch (ResponseStatusException exception) {
+//
+//                log.warn(
+//                        "Money data unavailable for organization: {}. Reason: {}",
+//                        organization.organizationCode(),
+//                        exception.getReason()
+//                );
+//
+//                organizationResults.add(
+//                        unavailableOrganization(
+//                                organization,
+//                                exception.getReason()
+//                        )
+//                );
+//
+//            } catch (RuntimeException exception) {
+//
+//                // Страховка: любая неожиданная ошибка остаётся
+//                // внутри одной организации.
+//                log.error(
+//                        "Unexpected error while loading money for organization: {}",
+//                        organization.organizationCode(),
+//                        exception
+//                );
+//
+//                organizationResults.add(
+//                        unavailableOrganization(
+//                                organization,
+//                                INTERNAL_ERROR_REASON
+//                        )
+//                );
+//            }
+//        }
+
+//        boolean partialData = organizationResults.stream()
+//                .anyMatch(organization -> !organization.dataLoaded());
+
+        List<CompletableFuture<OrganizationMoneyResponse>> futures =
+                organizations.stream()
+                        .map(organization ->
+                                CompletableFuture.supplyAsync(
+                                        () -> loadOrganizationMoney(
+                                                organization, from, to
+                                        ),
+                                        moneyExecutor
+                                )
+                        )
+                        .toList();
+
+        // Метод ждёт завершения загрузки всех организаций.
         List<OrganizationMoneyResponse> organizationResults =
-                new ArrayList<>();
+                futures.stream()
+                        .map(CompletableFuture::join)
+                        .toList();
 
         BigDecimal globalOpening = ZERO;
         BigDecimal globalIncome = ZERO;
         BigDecimal globalExpense = ZERO;
 
-        // Каждая организация загружается независимо.
-        for (UserOrganizationResponse organization : organizations) {
-
-            // Некорректная организация не прерывает запрос,
-            // а отображается как «данные не загружены».
-            if (!isValidOrganization(organization)) {
-
-                log.warn(
-                        "Auth Service returned invalid organization data: {}",
-                        organization
-                );
-
-                organizationResults.add(
-                        unavailableOrganization(
-                                organization,
-                                INVALID_ORGANIZATION_REASON
-                        )
-                );
-
+        for (OrganizationMoneyResponse result : organizationResults) {
+            // Ошибочные организации остаются в списке,
+            // но в общие суммы не включаются.
+            if (!result.dataLoaded()) {
                 continue;
             }
 
-            try {
-
-                DataServiceMoneyResponse data =
-                        dataServiceMoneyClient.getOrganizationMoney(
-                                organization, from, to
-                        );
-
-                OrganizationMoneyResponse result =
-                        aggregateOrganization(organization, data);
-
-                organizationResults.add(result);
-
-                // В общие итоги включаем только успешно загруженные данные.
-                globalOpening = globalOpening.add(result.openingBalance());
-                globalIncome = globalIncome.add(result.totalIncome());
-                globalExpense = globalExpense.add(result.totalExpense());
-
-            } catch (ResponseStatusException exception) {
-
-                log.warn(
-                        "Money data unavailable for organization: {}. Reason: {}",
-                        organization.organizationCode(),
-                        exception.getReason()
-                );
-
-                organizationResults.add(
-                        unavailableOrganization(
-                                organization,
-                                exception.getReason()
-                        )
-                );
-
-            } catch (RuntimeException exception) {
-
-                // Страховка: любая неожиданная ошибка остаётся
-                // внутри одной организации.
-                log.error(
-                        "Unexpected error while loading money for organization: {}",
-                        organization.organizationCode(),
-                        exception
-                );
-
-                organizationResults.add(
-                        unavailableOrganization(
-                                organization,
-                                INTERNAL_ERROR_REASON
-                        )
-                );
-            }
+            globalOpening = globalOpening.add(result.openingBalance());
+            globalIncome = globalIncome.add(result.totalIncome());
+            globalExpense = globalExpense.add(result.totalExpense());
         }
 
         boolean partialData = organizationResults.stream()
-                .anyMatch(organization -> !organization.dataLoaded());
+                .anyMatch(result -> !result.dataLoaded());
+
 
         return new MoneyOverviewResponse(
                 organizationResults,
@@ -169,6 +213,58 @@ public class MoneyAggregationService {
                 partialData
         );
     }
+
+    private OrganizationMoneyResponse loadOrganizationMoney(
+            UserOrganizationResponse organization,
+            Instant from,
+            Instant to
+    ) {
+        if (!isValidOrganization(organization)) {
+            log.warn(
+                    "Auth Service returned invalid organization data: {}",
+                    organization
+            );
+
+            return unavailableOrganization(
+                    organization,
+                    INVALID_ORGANIZATION_REASON
+            );
+        }
+
+        try {
+            DataServiceMoneyResponse data =
+                    dataServiceMoneyClient.getOrganizationMoney(
+                            organization, from, to
+                    );
+
+            return aggregateOrganization(organization, data);
+
+        } catch (ResponseStatusException exception) {
+            log.warn(
+                    "Money data unavailable for organization: {}. Reason: {}",
+                    organization.organizationCode(),
+                    exception.getReason()
+            );
+
+            return unavailableOrganization(
+                    organization,
+                    exception.getReason()
+            );
+
+        } catch (RuntimeException exception) {
+            log.error(
+                    "Unexpected error while loading money for organization: {}",
+                    organization.organizationCode(),
+                    exception
+            );
+
+            return unavailableOrganization(
+                    organization,
+                    INTERNAL_ERROR_REASON
+            );
+        }
+    }
+
 
     /**
      * Проверка данных организации из Auth Service.
