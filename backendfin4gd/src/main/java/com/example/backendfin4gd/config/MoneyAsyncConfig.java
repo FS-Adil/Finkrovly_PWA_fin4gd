@@ -14,10 +14,10 @@ public class MoneyAsyncConfig {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
 
         // Базовое количество параллельных задач.
-        executor.setCorePoolSize(4);
+        executor.setCorePoolSize(6);
 
         // Максимум одновременных задач при высокой нагрузке.
-        executor.setMaxPoolSize(8);
+        executor.setMaxPoolSize(10);
 
         // Очередь задач, пока потоки заняты.
         executor.setQueueCapacity(100);

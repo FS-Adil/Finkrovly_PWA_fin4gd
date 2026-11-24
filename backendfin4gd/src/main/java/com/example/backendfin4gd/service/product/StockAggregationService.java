@@ -7,6 +7,7 @@ import com.example.backendfin4gd.service.AuthOrganizationServiceClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -17,6 +18,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
 @Slf4j
 @Service
@@ -27,6 +30,9 @@ public class StockAggregationService {
 
     private final AuthOrganizationServiceClient authOrganizationServiceClient;
     private final DataServiceStockClient dataServiceStockClient;
+
+    @Qualifier("stockExecutor")
+    private final Executor stockExecutor;
 
     /**
      * Получение складских остатков всех активных организаций пользователя.
@@ -50,77 +56,116 @@ public class StockAggregationService {
             return emptyOverview();
         }
 
-        List<OrganizationStockResponse> organizationResults =
-                new ArrayList<>();
+//        List<OrganizationStockResponse> organizationResults =
+//                new ArrayList<>();
 
-        QuantityAccumulator globalQuantities =
-                new QuantityAccumulator();
+//        QuantityAccumulator globalQuantities =
+//                new QuantityAccumulator();
 
-        BigDecimal globalTotalCost = ZERO;
+//        BigDecimal globalTotalCost = ZERO;
 
         // Каждая организация загружается независимо.
-        for (UserOrganizationResponse organization : organizations) {
+//        for (UserOrganizationResponse organization : organizations) {
+//
+//            if (organization == null
+//                    || organization.organizationId() == null
+//                    || organization.organizationCode() == null
+//                    || organization.organizationCode().isBlank()) {
+//
+//                throw new ResponseStatusException(
+//                        HttpStatus.BAD_GATEWAY,
+//                        "Auth Service returned invalid organization data"
+//                );
+//            }
+//
+//            try {
+//
+//                // Получаем данные конкретной организации.
+//                DataServiceStockResponse data =
+//                        dataServiceStockClient.getOrganizationStock(organization);
+//
+//                if (data == null) {
+//                    throw new ResponseStatusException(
+//                            HttpStatus.BAD_GATEWAY,
+//                            "Data Service returned an empty response"
+//                    );
+//                }
+//
+//                // Рассчитываем показатели организации.
+//                OrganizationStockResponse result =
+//                        aggregateOrganization(organization, data);
+//
+//                organizationResults.add(result);
+//
+//                // В общие итоги включаем только успешно загруженные данные.
+//                addQuantities(
+//                        globalQuantities,
+//                        result.totalQuantities()
+//                );
+//
+//                globalTotalCost = globalTotalCost.add(
+//                        result.totalCost()
+//                );
+//
+//            } catch (ResponseStatusException exception) {
+//
+//                // Ошибка одной организации не прерывает загрузку остальных.
+//                log.warn(
+//                        "Stock data unavailable for organization: {}. Reason: {}",
+//                        organization.organizationCode(),
+//                        exception.getReason()
+//                );
+//
+//                organizationResults.add(
+//                        unavailableOrganization(
+//                                organization,
+//                                exception.getReason()
+//                        )
+//                );
+//            }
+//        }
+//
+//        boolean partialData = organizationResults.stream()
+//                .anyMatch(organization -> !organization.dataLoaded());
+//
+//        return new StockOverviewResponse(
+//                organizationResults,
+//                globalQuantities.toResponse(),
+//                globalTotalCost,
+//                partialData
+//        );
 
-            if (organization == null
-                    || organization.organizationId() == null
-                    || organization.organizationCode() == null
-                    || organization.organizationCode().isBlank()) {
-
-                throw new ResponseStatusException(
-                        HttpStatus.BAD_GATEWAY,
-                        "Auth Service returned invalid organization data"
-                );
-            }
-
-            try {
-
-                // Получаем данные конкретной организации.
-                DataServiceStockResponse data =
-                        dataServiceStockClient.getOrganizationStock(organization);
-
-                if (data == null) {
-                    throw new ResponseStatusException(
-                            HttpStatus.BAD_GATEWAY,
-                            "Data Service returned an empty response"
-                    );
-                }
-
-                // Рассчитываем показатели организации.
-                OrganizationStockResponse result =
-                        aggregateOrganization(organization, data);
-
-                organizationResults.add(result);
-
-                // В общие итоги включаем только успешно загруженные данные.
-                addQuantities(
-                        globalQuantities,
-                        result.totalQuantities()
-                );
-
-                globalTotalCost = globalTotalCost.add(
-                        result.totalCost()
-                );
-
-            } catch (ResponseStatusException exception) {
-
-                // Ошибка одной организации не прерывает загрузку остальных.
-                log.warn(
-                        "Stock data unavailable for organization: {}. Reason: {}",
-                        organization.organizationCode(),
-                        exception.getReason()
-                );
-
-                organizationResults.add(
-                        unavailableOrganization(
-                                organization,
-                                exception.getReason()
+        List<CompletableFuture<OrganizationStockResponse>> futures =
+                organizations.stream()
+                        .map(organization ->
+                                CompletableFuture.supplyAsync(
+                                        () -> loadOrganizationStock(organization),
+                                        stockExecutor
+                                )
                         )
-                );
+                        .toList();
+
+        // join() вызывается в порядке исходного списка futures,
+        // поэтому порядок организаций в ответе сохраняется.
+        List<OrganizationStockResponse> organizationResults =
+                futures.stream()
+                        .map(CompletableFuture::join)
+                        .toList();
+
+        QuantityAccumulator globalQuantities = new QuantityAccumulator();
+        BigDecimal globalTotalCost = ZERO;
+
+        for (OrganizationStockResponse result : organizationResults) {
+            if (!result.dataLoaded()) {
+                continue;
             }
+
+            addQuantities(globalQuantities, result.totalQuantities());
+            globalTotalCost = globalTotalCost.add(result.totalCost());
         }
 
         boolean partialData = organizationResults.stream()
-                .anyMatch(organization -> !organization.dataLoaded());
+                .anyMatch(result -> !result.dataLoaded());
 
         return new StockOverviewResponse(
                 organizationResults,
@@ -128,6 +173,65 @@ public class StockAggregationService {
                 globalTotalCost,
                 partialData
         );
+
+    }
+
+    private OrganizationStockResponse loadOrganizationStock(
+            UserOrganizationResponse organization
+    ) {
+        if (organization == null
+                || organization.organizationId() == null
+                || organization.organizationCode() == null
+                || organization.organizationCode().isBlank()) {
+
+            log.warn(
+                    "Auth Service returned invalid organization data: {}",
+                    organization
+            );
+
+            return unavailableOrganization(
+                    organization,
+                    "Некорректные данные организации в Auth Service"
+            );
+        }
+
+        try {
+            DataServiceStockResponse data =
+                    dataServiceStockClient.getOrganizationStock(organization);
+
+            if (data == null) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_GATEWAY,
+                        "Data Service вернул пустой ответ"
+                );
+            }
+
+            return aggregateOrganization(organization, data);
+
+        } catch (ResponseStatusException exception) {
+            log.warn(
+                    "Stock data unavailable for organization: {}. Reason: {}",
+                    organization.organizationCode(),
+                    exception.getReason()
+            );
+
+            return unavailableOrganization(
+                    organization,
+                    exception.getReason()
+            );
+
+        } catch (RuntimeException exception) {
+            log.error(
+                    "Unexpected error while loading stock for organization: {}",
+                    organization.organizationCode(),
+                    exception
+            );
+
+            return unavailableOrganization(
+                    organization,
+                    "Внутренняя ошибка при обработке данных организации"
+            );
+        }
     }
 
     /**
