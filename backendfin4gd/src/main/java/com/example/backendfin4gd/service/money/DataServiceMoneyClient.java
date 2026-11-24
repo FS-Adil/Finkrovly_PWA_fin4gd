@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.server.ResponseStatusException;
@@ -22,6 +23,7 @@ import java.util.Objects;
 public class DataServiceMoneyClient {
 
     private final DataServiceRoutingProperties routingProperties;
+    private final RestClient.Builder restClientBuilder;
 
     public DataServiceMoneyResponse getOrganizationMoney(
             UserOrganizationResponse organization,
@@ -93,8 +95,9 @@ public class DataServiceMoneyClient {
             );
 
             // 4. Выполняем запрос с внутренним секретом и периодом.
-            DataServiceMoneyResponse response = RestClient
-                    .create(route.getBaseUrl())
+            DataServiceMoneyResponse response = restClientBuilder
+                    .clone().baseUrl(route.getBaseUrl())
+                    .build()
                     .get()
                     .uri(uriBuilder -> uriBuilder
                             .path(route.getMoneyPath())
@@ -165,6 +168,12 @@ public class DataServiceMoneyClient {
 
             return response;
 
+        } catch (ResourceAccessException exception) {
+            throw new ResponseStatusException(
+                    HttpStatus.GATEWAY_TIMEOUT,
+                    "Data Service не ответил за 5 секунд",
+                    exception
+            );
         } catch (RestClientException exception) {
 
             log.error(

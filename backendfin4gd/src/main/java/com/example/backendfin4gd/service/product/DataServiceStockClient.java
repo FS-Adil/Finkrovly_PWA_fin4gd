@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.server.ResponseStatusException;
@@ -21,6 +22,7 @@ import java.util.Objects;
 public class DataServiceStockClient {
 
     private final DataServiceRoutingProperties routingProperties;
+    private final RestClient.Builder restClientBuilder;
 
     public DataServiceStockResponse getOrganizationStock(
             UserOrganizationResponse organization
@@ -86,8 +88,10 @@ public class DataServiceStockClient {
             log.info("-->getOrganizationStock-->{}-->{}",route.getBaseUrl(), route.getStockPath());
 
             // 4. Выполняем запрос с внутренним секретом.
-            DataServiceStockResponse response = RestClient
-                    .create(route.getBaseUrl())
+            DataServiceStockResponse response = restClientBuilder
+                    .clone()
+                    .baseUrl(route.getBaseUrl())
+                    .build()
                     .get()
                     .uri(route.getStockPath())
                     .header(
@@ -134,6 +138,12 @@ public class DataServiceStockClient {
 
             return response;
 
+        } catch (ResourceAccessException exception) {
+            throw new ResponseStatusException(
+                    HttpStatus.GATEWAY_TIMEOUT,
+                    "Data Service не ответил за 5 секунд",
+                    exception
+            );
         } catch (RestClientException exception) {
 
             log.error(
