@@ -141,7 +141,7 @@ public class DataServiceStockClient {
         } catch (ResourceAccessException exception) {
             throw new ResponseStatusException(
                     HttpStatus.GATEWAY_TIMEOUT,
-                    "Data Service не ответил за 5 секунд",
+                    "Data Service не ответил за 10 секунд",
                     exception
             );
         } catch (RestClientException exception) {
